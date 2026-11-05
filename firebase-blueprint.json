@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "App": {
+      "title": "Application",
+      "description": "An application or game published by SideEye Studio",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "slug": { "type": "string", "maxLength": 100 },
+        "shortDescription": { "type": "string", "maxLength": 300 },
+        "fullDescription": { "type": "string", "maxLength": 10000 },
+        "iconUrl": { "type": "string", "maxLength": 2048 },
+        "developer": { "type": "string", "maxLength": 100 },
+        "version": { "type": "string", "maxLength": 50 },
+        "releaseDate": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "platforms": { "type": "array" },
+        "tags": { "type": "array" },
+        "status": { "type": "string", "enum": ["draft", "published"] },
+        "isFeatured": { "type": "boolean" },
+        "screenshots": { "type": "array" },
+        "downloads": { "type": "array" },
+        "viewCount": { "type": "number" },
+        "downloadCount": { "type": "number" }
+      },
+      "required": ["name", "slug", "shortDescription", "status", "version"]
+    },
+    "Tag": {
+      "title": "Category or Platform Tag",
+      "description": "Tags and categories used to organize apps",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "enum": ["platform", "category", "custom"] },
+        "color": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["name", "type"]
+    },
+    "Staff": {
+      "title": "Staff Member",
+      "description": "Authorized staff member with role-based access",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["owner", "admin", "developer"] },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "addedAt": { "type": "string", "maxLength": 50 },
+        "addedBy": { "type": "string", "maxLength": 128 },
+        "isSuperAdmin": { "type": "boolean" }
+      },
+      "required": ["email", "role"]
+    },
+    "SiteConfig": {
+      "title": "Site Settings",
+      "description": "Global website settings and content controls",
+      "type": "object",
+      "properties": {
+        "headline": { "type": "string", "maxLength": 200 },
+        "subheadline": { "type": "string", "maxLength": 500 },
+        "aboutBrief": { "type": "string", "maxLength": 1000 },
+        "aboutFull": { "type": "string", "maxLength": 10000 },
+        "contactEmail": { "type": "string", "maxLength": 128 },
+        "announcement": { "type": "object" },
+        "socialLinks": { "type": "object" },
+        "maintenanceMode": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      }
+    }
+  },
+  "firestore": {
+    "/apps/{appId}": {
+      "schema": { "$ref": "#/entities/App" },
+      "description": "SideEye Studio software applications and games"
+    },
+    "/tags/{tagId}": {
+      "schema": { "$ref": "#/entities/Tag" },
+      "description": "Application platform and category tags"
+    },
+    "/staff/{staffId}": {
+      "schema": { "$ref": "#/entities/Staff" },
+      "description": "Authorized staff members"
+    },
+    "/settings/{configId}": {
+      "schema": { "$ref": "#/entities/SiteConfig" },
+      "description": "Global site configuration documents"
+    }
+  }
+}

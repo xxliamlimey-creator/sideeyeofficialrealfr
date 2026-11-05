@@ -1,0 +1,6 @@
+{
+  "name": "SideEye Studio",
+  "description": "Official website and application marketplace of SideEye Studio. Independent developers of Windows, Android, games, and web applications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
