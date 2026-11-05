@@ -132,7 +132,7 @@ export const AppDetailPage: React.FC<AppDetailPageProps> = ({ appId }) => {
             <div className="flex items-start sm:items-center gap-6">
               <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden border border-zinc-800 bg-black flex-shrink-0 shadow-2xl">
                 <img
-                  src={app.iconUrl || '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png'}
+                  src={app.iconUrl || '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png'}
                   alt={app.name}
                   className="h-full w-full object-cover"
                 />
@@ -312,14 +312,25 @@ export const AppDetailPage: React.FC<AppDetailPageProps> = ({ appId }) => {
                         </p>
                       )}
 
-                      <button
-                        onClick={() => handleDownload(item)}
-                        disabled={downloadingId === item.id}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-bold text-black hover:bg-zinc-200 transition-all active:scale-[0.98] disabled:opacity-50"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        {downloadingId === item.id ? 'Starting Download...' : `Download ${item.platform} Build`}
-                      </button>
+                      {item.platform?.toLowerCase() === 'web' || (item.fileUrl?.startsWith('http') && !item.fileName?.match(/\.(exe|apk|zip|msi|dmg|tar|gz)$/i)) ? (
+                        <button
+                          onClick={() => handleDownload(item)}
+                          disabled={downloadingId === item.id}
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-bold text-black hover:bg-zinc-200 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Launch Web Application
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDownload(item)}
+                          disabled={downloadingId === item.id}
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-bold text-black hover:bg-zinc-200 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {downloadingId === item.id ? 'Starting Download...' : `Download ${item.platform} Build`}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

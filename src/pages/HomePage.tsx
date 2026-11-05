@@ -129,7 +129,7 @@ export const HomePage: React.FC<HomePageProps> = ({ featuredApps, config, loadin
                     <div className="flex items-start justify-between gap-4 mb-5">
                       <div className="h-14 w-14 overflow-hidden rounded-xl border border-zinc-800 bg-black flex-shrink-0">
                         <img
-                          src={app.iconUrl || '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png'}
+                          src={app.iconUrl || '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png'}
                           alt={app.name}
                           className="h-full w-full object-cover"
                         />

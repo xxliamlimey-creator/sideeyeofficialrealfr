@@ -15,6 +15,7 @@ import {
   fetchSiteConfig,
   saveSiteConfig
 } from '../lib/db';
+import { sanitizeSlug, storeBinaryFile, compressImage } from '../lib/storageHelper';
 import {
   LayoutDashboard,
   Layers,
@@ -128,7 +129,7 @@ export const StaffPortalPage: React.FC = () => {
       slug: '',
       shortDescription: '',
       fullDescription: '',
-      iconUrl: '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png',
+      iconUrl: '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png',
       developer: 'SideEye Studio',
       version: '1.0.0',
       releaseDate: new Date().toISOString().split('T')[0],
@@ -157,11 +158,14 @@ export const StaffPortalPage: React.FC = () => {
       return;
     }
 
-    const slug = editingApp.slug.trim() || editingApp.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const rawSlug = editingApp.slug.trim() || editingApp.name;
+    const cleanSlug = sanitizeSlug(rawSlug);
+    const cleanId = sanitizeSlug(editingApp.id || cleanSlug);
+
     const finalApp: AppModel = {
       ...editingApp,
-      id: editingApp.id || slug,
-      slug: slug,
+      id: cleanId,
+      slug: cleanSlug,
       updatedAt: new Date().toISOString()
     };
 
@@ -222,15 +226,16 @@ export const StaffPortalPage: React.FC = () => {
   // Add a new download target inside editing app
   const addDownloadTarget = () => {
     if (!editingApp) return;
+    const defaultPlatform = editingApp.platforms[0] || 'Windows';
     const newDownload: DownloadItem = {
       id: `dl-${Date.now()}`,
-      platform: editingApp.platforms[0] || 'Windows',
-      name: `${editingApp.platforms[0] || 'Windows'} Package`,
-      fileName: `${editingApp.name.replace(/\s+/g, '_')}_Setup.exe`,
+      platform: defaultPlatform,
+      name: `${defaultPlatform} Release`,
+      fileName: defaultPlatform.toLowerCase() === 'web' ? 'Web Application' : `${editingApp.name.replace(/\s+/g, '_')}_Setup.exe`,
       version: editingApp.version || '1.0.0',
-      fileSize: '24.5 MB',
-      fileUrl: '#download-release',
-      releaseNotes: 'Initial production build.',
+      fileSize: '18.4 MB',
+      fileUrl: '',
+      releaseNotes: 'Official production build.',
       downloadCount: 0,
       uploadedAt: new Date().toISOString()
     };
@@ -240,41 +245,49 @@ export const StaffPortalPage: React.FC = () => {
     });
   };
 
-  // Handle local file upload for downloadable binary or icon
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'icon' | 'screenshot' | number) => {
+  // Handle local file upload for downloadable binary, icon, or screenshot
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'icon' | 'screenshot' | number) => {
     const file = e.target.files?.[0];
     if (!file || !editingApp) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
+    try {
       if (target === 'icon') {
-        setEditingApp({ ...editingApp, iconUrl: dataUrl });
-        showNotification('App icon updated from local file.');
+        const compressed = await compressImage(file, 256, 256, 0.85);
+        setEditingApp({ ...editingApp, iconUrl: compressed });
+        showNotification('App icon compressed and updated.');
       } else if (target === 'screenshot') {
+        const compressed = await compressImage(file, 1280, 720, 0.75);
         setEditingApp({
           ...editingApp,
-          screenshots: [...(editingApp.screenshots || []), dataUrl]
+          screenshots: [...(editingApp.screenshots || []), compressed]
         });
-        showNotification('Screenshot added.');
+        showNotification('Screenshot compressed and added.');
       } else if (typeof target === 'number') {
-        // Target is index of download item
+        // Target is index of download item: store raw binary in client IndexedDB storage to never exceed Firestore's 1MB limit
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        const safeSlug = sanitizeSlug(editingApp.slug || editingApp.name || 'app');
+        const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storageKey = `bin_${safeSlug}_${Date.now()}_${cleanFileName}`;
+
+        const storedUri = await storeBinaryFile(storageKey, file);
+
         const updatedDls = [...(editingApp.downloads || [])];
         if (updatedDls[target]) {
-          const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
           updatedDls[target] = {
             ...updatedDls[target],
             fileName: file.name,
             fileSize: `${sizeMb} MB`,
-            fileUrl: dataUrl,
+            fileUrl: storedUri,
             uploadedAt: new Date().toISOString()
           };
           setEditingApp({ ...editingApp, downloads: updatedDls });
-          showNotification(`Attached package file: ${file.name}`);
+          showNotification(`Attached package file: ${file.name} (${sizeMb} MB)`);
         }
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: unknown) {
+      console.error('File upload error:', err);
+      showNotification('Failed to process file upload', 'error');
+    }
   };
 
   // ----------------- TAG HANDLERS -----------------
@@ -513,8 +526,8 @@ export const StaffPortalPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-lg overflow-hidden border border-zinc-800 bg-black">
                 <img
-                  src="/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png"
-                  alt="SideEye Emblem"
+                  src="/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png"
+                  alt="SideEye Mark"
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -955,14 +968,26 @@ export const StaffPortalPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-mono text-zinc-400 block mb-1">URL Slug / ID</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-mono text-zinc-400">URL Slug / ID *</label>
+                        <span className="text-[10px] text-zinc-500 font-mono">Lowercase, numbers, dashes</span>
+                      </div>
                       <input
                         type="text"
                         value={editingApp.slug}
-                        onChange={(e) => setEditingApp({ ...editingApp, slug: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingApp({ ...editingApp, slug: sanitizeSlug(val) });
+                        }}
+                        onBlur={(e) => {
+                          setEditingApp({ ...editingApp, slug: sanitizeSlug(e.target.value) });
+                        }}
                         placeholder="e.g. mystery-dice"
                         className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2 text-sm text-white focus:border-zinc-500 focus:outline-none"
                       />
+                      <p className="text-[11px] text-zinc-500 mt-1">
+                        Safe web identifier. Used in the URL path (e.g. /apps/{sanitizeSlug(editingApp.slug || editingApp.name || 'app')}).
+                      </p>
                     </div>
                   </div>
 
@@ -1270,6 +1295,35 @@ export const StaffPortalPage: React.FC = () => {
                               />
                             </label>
                           </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[11px] font-mono text-zinc-400">
+                              Direct Download Link or Web Application URL
+                            </label>
+                            <span className="text-[10px] text-zinc-500 font-mono">e.g. Wasmer app, GitHub Release, CDN</span>
+                          </div>
+                          <input
+                            type="text"
+                            value={dl.fileUrl?.startsWith('idb://') ? '' : dl.fileUrl}
+                            onChange={(e) => {
+                              const updated = [...editingApp.downloads];
+                              updated[index].fileUrl = e.target.value.trim();
+                              setEditingApp({ ...editingApp, downloads: updated });
+                            }}
+                            placeholder="https://mystery-dice.wasmer.app or https://github.com/.../setup.exe"
+                            className="w-full rounded bg-zinc-900 border border-zinc-800 px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 focus:border-zinc-500 focus:outline-none"
+                          />
+                          {dl.fileUrl?.startsWith('idb://') ? (
+                            <span className="text-[10px] text-emerald-400 mt-1 block">
+                              ✓ Local binary file stored in client storage ({dl.fileName} · {dl.fileSize})
+                            </span>
+                          ) : dl.fileUrl?.startsWith('http') ? (
+                            <span className="text-[10px] text-zinc-400 mt-1 block">
+                              Direct link configured: {dl.fileUrl}
+                            </span>
+                          ) : null}
                         </div>
 
                         <div>

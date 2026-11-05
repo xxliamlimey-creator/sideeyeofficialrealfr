@@ -18,8 +18,8 @@ export const Footer: React.FC<FooterProps> = ({ config }) => {
           <div className="flex items-center gap-3.5">
             <div className="h-9 w-9 overflow-hidden rounded bg-black border border-zinc-800">
               <img
-                src="/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png"
-                alt="SideEye Studio Logo"
+                src="/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png"
+                alt="SideEye Studio Mark"
                 className="h-full w-full object-cover"
               />
             </div>

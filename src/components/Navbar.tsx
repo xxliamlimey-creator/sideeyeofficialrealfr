@@ -54,8 +54,8 @@ export const Navbar: React.FC<NavbarProps> = ({ announcement }) => {
         >
           <div className="relative h-8 w-8 overflow-hidden rounded bg-black border border-zinc-800 transition-transform duration-200 group-hover:scale-105">
             <img
-              src="/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png"
-              alt="SideEye Studio Logo"
+              src="/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png"
+              alt="SideEye Studio Mark"
               className="h-full w-full object-cover"
             />
           </div>

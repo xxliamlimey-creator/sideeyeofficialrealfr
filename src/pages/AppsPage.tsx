@@ -152,7 +152,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ apps, tags, loading }) => {
                 <div className="flex items-start sm:items-center gap-6">
                   <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden border border-zinc-800 bg-black flex-shrink-0 shadow-lg">
                     <img
-                      src={spotlightApp.iconUrl || '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png'}
+                      src={spotlightApp.iconUrl || '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png'}
                       alt={spotlightApp.name}
                       className="h-full w-full object-cover"
                     />
@@ -346,7 +346,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ apps, tags, loading }) => {
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="h-16 w-16 overflow-hidden rounded-xl border border-zinc-800 bg-black flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
                           <img
-                            src={app.iconUrl || '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png'}
+                            src={app.iconUrl || '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png'}
                             alt={app.name}
                             className="h-full w-full object-cover"
                           />
@@ -415,7 +415,7 @@ export const AppsPage: React.FC<AppsPageProps> = ({ apps, tags, loading }) => {
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-xl overflow-hidden border border-zinc-800 bg-black flex-shrink-0">
                         <img
-                          src={app.iconUrl || '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png'}
+                          src={app.iconUrl || '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png'}
                           alt={app.name}
                           className="h-full w-full object-cover"
                         />

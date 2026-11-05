@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from './firebase';
 import { AppModel, TagModel, StaffModel, SiteConfigModel, DownloadItem } from '../types';
+import { sanitizeSlug, storeBinaryFile } from './storageHelper';
 
 export const INITIAL_TAGS: TagModel[] = [
   { id: 'windows', name: 'Windows', description: 'Native Windows desktop software', type: 'platform', color: '#38bdf8', createdAt: new Date().toISOString() },
@@ -56,14 +57,14 @@ export const INITIAL_APPS: AppModel[] = [
     slug: 'mystery-dice',
     shortDescription: 'A tactical dice-rolling probability game featuring dark-fantasy relics, reactive physics, and randomized modifiers.',
     fullDescription: 'Mystery Dice is an atmospheric strategy and probability game developed for PC and Android. Step into the clandestine relic sanctum where every roll dictates survival. Features fully simulated 3D physical dice physics, over 60 unlockable relic modifiers, single-player challenge runs, and offline campaign progression.\n\nKey Highlights:\n• Real-time deterministic dice collisions and tactile audio feedback\n• Offline play supported on all platforms\n• Dynamic modifiers including Shadow Shard, Golden Eye, and Cursed D20\n• Zero ads, zero microtransactions',
-    iconUrl: '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png',
+    iconUrl: '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png',
     developer: 'SideEye Studio',
     version: '1.4.2',
     releaseDate: '2026-03-15',
     updatedAt: '2026-10-28',
     createdAt: '2026-03-10',
-    platforms: ['Windows', 'Android'],
-    tags: ['Games', 'Android', 'Windows'],
+    platforms: ['Windows', 'Android', 'Web'],
+    tags: ['Games', 'Android', 'Windows', 'Web'],
     status: 'published',
     isFeatured: true,
     screenshots: [
@@ -72,6 +73,18 @@ export const INITIAL_APPS: AppModel[] = [
       'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'
     ],
     downloads: [
+      {
+        id: 'md-web-wasmer',
+        platform: 'Web',
+        name: 'Web Edition (Play in Browser)',
+        fileName: 'mystery-dice.wasmer.app',
+        version: '1.4.2',
+        fileSize: 'Cloud Stream',
+        fileUrl: 'https://mystery-dice.wasmer.app/',
+        releaseNotes: 'Play directly in browser with WebAssembly and WebGL acceleration.',
+        downloadCount: 5240,
+        uploadedAt: '2026-10-28',
+      },
       {
         id: 'md-win-64',
         platform: 'Windows',
@@ -106,7 +119,7 @@ export const INITIAL_APPS: AppModel[] = [
     slug: 'sideeye-command',
     shortDescription: 'Minimalist system monitoring and rapid command launcher built for Windows and Linux workstations.',
     fullDescription: 'SideEye Command provides a distraction-free keyboard-centric overlay to monitor hardware telemetry, manage local developer servers, control audio channels, and execute custom workspace routines.\n\nDesigned with low memory footprint (< 18MB RAM) and zero telemetry, SideEye Command sits silently in your tray until summoned with a global hotkey.',
-    iconUrl: '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png',
+    iconUrl: '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png',
     developer: 'SideEye Studio',
     version: '2.1.0',
     releaseDate: '2026-01-20',
@@ -155,7 +168,7 @@ export const INITIAL_APPS: AppModel[] = [
     slug: 'pulsenote',
     shortDescription: 'Instant markdown scratchpad with encrypted peer-to-peer sync, code highlighting, and zero bloat.',
     fullDescription: 'PulseNote is engineered for developers, writers, and technical creators who demand zero startup lag. Opens in less than 60 milliseconds. Backed by client-side AES-256 encryption, PulseNote never reads your notes and syncs frictionlessly between desktop and mobile devices.',
-    iconUrl: '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png',
+    iconUrl: '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png',
     developer: 'SideEye Studio',
     version: '1.0.8',
     releaseDate: '2026-05-12',
@@ -204,7 +217,7 @@ export const INITIAL_APPS: AppModel[] = [
     slug: 'vigil-audio-tools',
     shortDescription: 'Low-latency multi-bus audio routing suite and spectral analyzer for game sound designers.',
     fullDescription: 'Vigil Audio Tools gives audio engineers and game developers immediate control over system audio loops, spatial audio monitoring, and peak-limiting filters with a hardware-grade virtual interface.',
-    iconUrl: '/assets/aistudio/Stealthy_Eye_Emblem_40da80da.png',
+    iconUrl: '/assets/aistudio/316b0392-3f5b-4a07-a29a-125ff15a90ef_cd7286d7.png',
     developer: 'SideEye Studio',
     version: '0.9.4',
     releaseDate: '2026-08-01',
@@ -339,20 +352,48 @@ export async function fetchAppBySlugOrId(idOrSlug: string): Promise<AppModel | n
 }
 
 export async function saveApp(appData: AppModel): Promise<void> {
-  const appId = appData.id || appData.slug;
+  const rawId = appData.id || appData.slug || appData.name;
+  const appId = sanitizeSlug(rawId);
   const path = `apps/${appId}`;
+
+  // Defensive payload sanitization: ensure no huge binary strings exceed Firestore's 1MB limit
+  const sanitizedDownloads = await Promise.all(
+    (appData.downloads || []).map(async (dl, idx) => {
+      let fileUrl = dl.fileUrl || '';
+      // If someone passed a huge base64 data URI (> 100KB), offload it to IndexedDB
+      if (fileUrl.startsWith('data:') && fileUrl.length > 100000) {
+        try {
+          const res = await fetch(fileUrl);
+          const blob = await res.blob();
+          const key = `file_${appId}_${dl.id || idx}_${Date.now()}`;
+          fileUrl = await storeBinaryFile(key, blob);
+        } catch (e) {
+          console.warn('Offloading base64 to IndexedDB:', e);
+        }
+      }
+      return {
+        ...dl,
+        fileUrl
+      };
+    })
+  );
+
+  const payload: AppModel = {
+    ...appData,
+    id: appId,
+    slug: sanitizeSlug(appData.slug || appId),
+    downloads: sanitizedDownloads,
+    updatedAt: new Date().toISOString()
+  };
+
   try {
-    await setDoc(doc(db, 'apps', appId), {
-      ...appData,
-      id: appId,
-      updatedAt: new Date().toISOString()
-    });
+    await setDoc(doc(db, 'apps', appId), payload);
     // Update local cache
-    const idx = localApps.findIndex(a => a.id === appId);
+    const idx = localApps.findIndex(a => a.id === appId || a.slug === appId);
     if (idx >= 0) {
-      localApps[idx] = { ...appData, id: appId, updatedAt: new Date().toISOString() };
+      localApps[idx] = payload;
     } else {
-      localApps.unshift({ ...appData, id: appId, updatedAt: new Date().toISOString() });
+      localApps.unshift(payload);
     }
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
